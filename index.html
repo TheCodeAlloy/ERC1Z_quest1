@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erasmus+ Zpráva</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f9; padding: 20px; color: #333; }
+        .box { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        .header { text-align: center; border-bottom: 2px solid #003399; margin-bottom: 20px; padding-bottom: 10px; }
+        h1 { color: #003399; font-size: 20px; margin: 5px 0; }
+        h2 { color: #555; font-size: 16px; margin: 0; font-weight: normal; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        small { color: #666; font-style: italic; display: block; margin-bottom: 10px; }
+        button { background: #003399; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:disabled { background: #ccc; }
+        .error { color: #d9534f; background: #f2dede; padding: 15px; border-radius: 5px; margin-top: 20px; border: 1px solid #ebccd1; }
+    </style>
+</head>
+<body>
+
+<div class="box" id="step1">
+    <div class="header"><h1>Závěrečná zpráva ze stáže</h1></div>
+    <p>Zadejte prosím přístupový kód vaší stáže:</p>
+    <input type="text" id="kodVstup" placeholder="Kód stáže">
+    <button style="margin-top:15px" onclick="overitKod()">Načíst formulář</button>
+    <div id="errorMsg" class="hidden error"></div>
+</div>
+
+<div class="box hidden" id="step2">
+    <div class="header">
+        <h1 id="dynProjekt"></h1>
+        <h2 id="dynOrg"></h2>
+    </div>
+    
+    <p style="background: #eef2ff; padding: 10px; border-left: 4px solid #003399;">
+        Prosím vyplňte odpovědi na tyto 3 otázky. Je to pro nás cenný zdroj informací. Děkujeme!
+    </p>
+
+    <form id="formZprava">
+        <div class="input-group"><label>Jméno a příjmení</label><input type="text" id="jmeno" required></div>
+        <div class="input-group"><label>Místo (Město / Stát)</label><input type="text" id="misto" required></div>
+        <div class="input-group"><label>Období (Měsíc a rok)</label><input type="text" id="datum" required></div>
+        
+        <hr>
+        <div id="otazkyArea"></div>
+        
+        <button type="submit" id="btnOdeslat">Odeslat zprávu</button>
+    </form>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQ2or0mdhAACixk6DSevhDcCNI6B1VdTyLMWdjc1bFsIWO1xVfFdKzci9EdsNGmKbq/exec";
+    let aktualniKod = "";
+
+    async function overitKod() {
+        const kod = document.getElementById('kodVstup').value.trim();
+        const errDiv = document.getElementById('errorMsg');
+        errDiv.classList.add('hidden');
+
+        try {
+            const res = await fetch(`${SCRIPT_URL}?answ=1&kod=${encodeURIComponent(kod)}`);
+            const data = await res.json();
+
+            if (data.ok) {
+                aktualniKod = kod;
+                zobrazFormular(data);
+            } else {
+                errDiv.innerHTML = `Kód <strong>${kod}</strong> nebyl nalezen. Ujistěte se, že jste jej zadali správně, případně kontaktujte správce.`;
+                errDiv.classList.remove('hidden');
+            }
+        } catch (e) {
+            alert("Chyba při komunikaci se serverem.");
+        }
+    }
+
+    function zobrazFormular(data) {
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+        document.getElementById('dynProjekt').innerText = data.projekt;
+        document.getElementById('dynOrg').innerText = data.organizace;
+
+        const area = document.getElementById('otazkyArea');
+        data.otazky.sort((a,b) => a.cislo - b.cislo).forEach((o, i) => {
+            area.innerHTML += `
+                <div class="input-group">
+                    <label>${o.text}</label>
+                    <small>${o.hint}</small>
+                    <textarea id="odpoved${i+1}" rows="4" required></textarea>
+                </div>`;
+        });
+    }
+
+    document.getElementById('formZprava').onsubmit = async (e) => {
+        e.preventDefault();
+        document.getElementById('btnOdeslat').disabled = true;
+
+        const payload = {
+            jmeno: document.getElementById('jmeno').value,
+            misto: document.getElementById('misto').value,
+            datum: document.getElementById('datum').value,
+            kod: aktualniKod,
+            odpoved1: document.getElementById('odpoved1').value,
+            odpoved2: document.getElementById('odpoved2').value,
+            odpoved3: document.getElementById('odpoved3').value
+        };
+
+        try {
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+            alert("Zpráva byla úspěšně odeslána. Děkujeme!");
+            location.reload();
+        } catch (e) {
+            alert("Chyba při ukládání.");
+            document.getElementById('btnOdeslat').disabled = false;
+        }
+    };
+</script>
+</body>
+</html>
