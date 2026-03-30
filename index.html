@@ -13,11 +13,28 @@
         h2 { color: #555; font-size: 16px; margin: 0; font-weight: normal; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         small { color: #666; font-style: italic; display: block; margin-bottom: 10px; }
-        button { background: #003399; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        button:disabled { background: #ccc; }
+        button { background: #003399; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         .error { color: #d9534f; background: #f2dede; padding: 15px; border-radius: 5px; margin-top: 20px; border: 1px solid #ebccd1; }
+
+        /* Styl pro spinner */
+        .spinner {
+            display: none;
+            width: 30px;
+            height: 30px;
+            margin: 15px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #003399;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Úprava pro děkovnou stránku */
+        .success-box { text-align: center; padding: 20px 0; }
+        .success-icon { font-size: 50px; color: #28a745; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -26,7 +43,8 @@
     <div class="header"><h1>Zpětná vazba po návratu z mobility</h1></div>
     <p>Zadejte prosím přístupový kód:</p>
     <input type="text" id="kodVstup" placeholder="přístupový kód">
-    <button style="margin-top:15px" onclick="overitKod()">Načíst formulář</button>
+    <button style="margin-top:15px" id="btnNacist" onclick="overitKod()">Načíst formulář</button>
+    <div id="loader1" class="spinner"></div>
     <div id="errorMsg" class="hidden error"></div>
 </div>
 
@@ -36,8 +54,8 @@
         <h2 id="dynOrg"></h2>
     </div>
     
-    <p style="background: #eef2ff; padding: 10px; border-left: 4px solid #003399;">
-        Prosím vyplňte odpovědi na tyto 3 otázky. Je to pro nás cenný zdroj informací. Děkujeme!
+    <p style="background: #eef2ff; padding: 15px; border-left: 4px solid #003399; font-size: 15px;">
+        Prosím vyplňte odpovědi na následující otázky. Je to pro nás cenný zdroj informací. Děkujeme!
     </p>
 
     <form id="formZprava">
@@ -45,11 +63,21 @@
         <div class="input-group"><label>Kde se mobilita uskutečnila? (Město / Stát)</label><input type="text" id="misto" required></div>
         <div class="input-group"><label>V jakém období se mobilita uskutečnila? (Měsíc a rok)</label><input type="text" id="datum" required></div>
         
-        <hr>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
         <div id="otazkyArea"></div>
         
-        <button type="submit" id="btnOdeslat">Odeslat zprávu</button>
+        <button type="submit" id="btnOdeslat">Odeslat</button>
+        <div id="loader2" class="spinner"></div>
     </form>
+</div>
+
+<div class="box hidden" id="stepSuccess">
+    <div class="success-box">
+        <div class="success-icon">✓</div>
+        <h1>Úspěšně odesláno</h1>
+        <p>Vaše zpětná vazba byla úspěšně odeslána. Děkujeme!</p>
+        <p style="color: #666; margin-top: 25px; font-weight: bold;">Toto okno můžete nyní zavřít.</p>
+    </div>
 </div>
 
 <script>
@@ -59,7 +87,14 @@
     async function overitKod() {
         const kod = document.getElementById('kodVstup').value.trim();
         const errDiv = document.getElementById('errorMsg');
+        const loader = document.getElementById('loader1');
+        const btn = document.getElementById('btnNacist');
+
+        if (!kod) return;
+
         errDiv.classList.add('hidden');
+        loader.style.display = 'block';
+        btn.disabled = true;
 
         try {
             const res = await fetch(`${SCRIPT_URL}?answ=1&kod=${encodeURIComponent(kod)}`);
@@ -71,9 +106,13 @@
             } else {
                 errDiv.innerHTML = `Kód <strong>${kod}</strong> nebyl nalezen. Ujistěte se, že jste jej zadali správně, případně kontaktujte správce.`;
                 errDiv.classList.remove('hidden');
+                btn.disabled = false;
             }
         } catch (e) {
             alert("Chyba při komunikaci se serverem.");
+            btn.disabled = false;
+        } finally {
+            loader.style.display = 'none';
         }
     }
 
@@ -84,6 +123,7 @@
         document.getElementById('dynOrg').innerText = data.organizace;
 
         const area = document.getElementById('otazkyArea');
+        area.innerHTML = ''; // Vyčištění pro jistotu
         data.otazky.sort((a,b) => a.cislo - b.cislo).forEach((o, i) => {
             area.innerHTML += `
                 <div class="input-group">
@@ -96,7 +136,11 @@
 
     document.getElementById('formZprava').onsubmit = async (e) => {
         e.preventDefault();
-        document.getElementById('btnOdeslat').disabled = true;
+        const btn = document.getElementById('btnOdeslat');
+        const loader = document.getElementById('loader2');
+
+        btn.disabled = true;
+        loader.style.display = 'block';
 
         const payload = {
             jmeno: document.getElementById('jmeno').value,
@@ -109,12 +153,17 @@
         };
 
         try {
-            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("Vaše zpětná vazba byla úspěšně odeslána. Děkujeme!");
-            location.reload();
+            const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+            if (response.ok) {
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('stepSuccess').classList.remove('hidden');
+            } else {
+                throw new Error("Server error");
+            }
         } catch (e) {
-            alert("Chyba při ukládání.");
-            document.getElementById('btnOdeslat').disabled = false;
+            alert("Chyba při ukládání. Zkuste to prosím znovu.");
+            btn.disabled = false;
+            loader.style.display = 'none';
         }
     };
 </script>
