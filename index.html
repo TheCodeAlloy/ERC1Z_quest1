@@ -41,9 +41,9 @@
     </p>
 
     <form id="formZprava">
-        <div class="input-group"><label>Jméno a příjmení</label><input type="text" id="jmeno" required></div>
-        <div class="input-group"><label>Místo (Město / Stát)</label><input type="text" id="misto" required></div>
-        <div class="input-group"><label>Období (Měsíc a rok)</label><input type="text" id="datum" required></div>
+        <div class="input-group"><label>Vaše jméno a příjmení</label><input type="text" id="jmeno" required></div>
+        <div class="input-group"><label>Kde se mobilita uskutečnila? (Město / Stát)</label><input type="text" id="misto" required></div>
+        <div class="input-group"><label>V jakém období se mobilita uskutečnila? (Měsíc a rok)</label><input type="text" id="datum" required></div>
         
         <hr>
         <div id="otazkyArea"></div>
@@ -110,7 +110,7 @@
 
         try {
             await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("Zpráva byla úspěšně odeslána. Děkujeme!");
+            alert("Vaše zpětná vazba byla úspěšně odeslána. Děkujeme!");
             location.reload();
         } catch (e) {
             alert("Chyba při ukládání.");
