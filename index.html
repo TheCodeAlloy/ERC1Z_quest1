@@ -107,8 +107,9 @@
     let aktualniKod = "";
 
     async function overitKod() {
-        const kod = document.getElementById('kodVstup').value.trim();
-        const errDiv = document.getElementById('errorMsg');
+    // .toLowerCase() zajistí, že "ABC" i "abc" bude pro skript totéž
+    const kod = document.getElementById('kodVstup').value.trim().toLowerCase(); 
+    const errDiv = document.getElementById('errorMsg');
         const loader = document.getElementById('loader1');
         const btn = document.getElementById('btnNacist');
 
