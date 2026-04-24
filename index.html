@@ -164,15 +164,19 @@
         btn.disabled = true;
         loader.style.display = 'block';
 
-        const payload = {
-            jmeno: document.getElementById('jmeno').value,
-            misto: document.getElementById('misto').value,
-            datum: document.getElementById('datum').value,
-            kod: aktualniKod,
-            odpoved1: document.getElementById('odpoved1').value,
-            odpoved2: document.getElementById('odpoved2').value,
-            odpoved3: document.getElementById('odpoved3').value
-        };
+        // NOVÉ - dynamicky podle počtu otázek
+const payload = {
+    jmeno: document.getElementById('jmeno').value,
+    misto: document.getElementById('misto').value,
+    datum: document.getElementById('datum').value,
+    kod: aktualniKod,
+};
+
+let i = 1;
+while (document.getElementById('odpoved' + i)) {
+    payload['odpoved' + i] = document.getElementById('odpoved' + i).value;
+    i++;
+}
 
         try {
             const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
